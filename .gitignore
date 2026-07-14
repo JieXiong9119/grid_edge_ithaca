@@ -10,3 +10,5 @@ grid_edge_fy25/data/data_dictionary.xlsx
 results
 data
 data/resstock_models
+.venv
+.vscode

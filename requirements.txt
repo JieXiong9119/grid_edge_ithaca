@@ -1,0 +1,30 @@
+# Reproducible environment for GrRIDS notebooks (Python 3.13)
+# Install with:
+#   python -m pip install --upgrade pip
+#   python -m pip install -r requirements.txt
+
+# Direct notebook dependencies
+awscli==1.42.0
+botocore==1.40.0
+s3transfer==0.13.1
+pandas==2.2.3
+numpy==2.2.6
+matplotlib==3.10.0
+pyarrow==19.0.1
+fastparquet==2024.11.0
+
+# Workbook/Excel reader used by pandas.read_excel on .xlsx files
+openpyxl==3.1.5
+
+# Optional path used by the parallel S3 downloader cell
+boto3==1.40.0
+
+# Observed transitive dependencies pinned for reproducibility
+cramjam==2.11.0
+fsspec==2025.9.0
+packaging==24.2
+jmespath==1.0.1
+python-dateutil==2.9.0.post0
+pytz==2025.2
+tzdata==2025.2
+urllib3==2.4.0

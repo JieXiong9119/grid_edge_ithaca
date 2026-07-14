@@ -4,6 +4,49 @@ This repository contains the full data pipeline for the GRIDs project. It downlo
 
 ---
 
+# Environment Setup
+
+Use Python 3.13 with pinned packages from [requirements.txt](requirements.txt).
+
+## 1. Create and activate a virtual environment
+
+### Windows (PowerShell)
+
+```powershell
+py -3.13 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+### macOS/Linux
+
+```bash
+python3.13 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+## 2. Validate the environment
+
+```bash
+python -c "import pandas, numpy, matplotlib, pyarrow, fastparquet, boto3, openpyxl; print('python deps OK')"
+python -m awscli --version
+```
+
+## 3. Install external tools (not pip-managed)
+
+- OpenStudio 3.9.0+
+- EnergyPlus (required by OpenStudio runs)
+
+The notebook references these paths for OpenStudio:
+
+- Windows: `C:/openstudio-3.9.0/bin/openstudio.exe`
+- macOS: `/Applications/OpenStudio-3.9.0/bin/openstudio`
+
+---
+
 # Project Context
 
 The goal is to build feeder-level load profiles for the Dryden, NY distribution circuit by combining:
