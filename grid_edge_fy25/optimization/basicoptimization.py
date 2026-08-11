@@ -77,3 +77,4 @@ for b in B:
     for y in Y:
         if model.X[b, y].value > 0.5:
             print(f"Selected model {b} for building {y}")
+            print(b)
