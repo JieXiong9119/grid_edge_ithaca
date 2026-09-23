@@ -263,12 +263,12 @@ All timeseries are filtered to:
 
 | File | Description |
 |---|---:|
-| `NY_upgrade0.xlsx` | ResStock metadata for NY |
-| `ch1_4301002_individual.csv` | Raw AMI 15-minute interval data |
-| `location_reference.csv` | SPID → GISID mapping |
-| `Ithaca_2024.epw` | EnergyPlus weather file |
-| `workflow_resstock.osw` | OpenStudio workflow |
-| `match_report.csv` | AMI ↔ ResStock matching results |
+| `NY_upgrade0.xlsx` | ResStock metadata for NY | data/input_files |
+| `ch1_4301002_individual.csv` | Raw AMI 15-minute interval data | too large for repo |
+| `location_reference.csv` | SPID → GISID mapping | data/input_files |
+| `Ithaca_2024.epw` | EnergyPlus weather file | data/base_files/weather |
+| `workflow_resstock.osw` | OpenStudio workflow | data/base_files |
+| `match_report.csv` | AMI ↔ ResStock matching results | results/ |
 | `load_2.dss` | OpenDSS feeder model |
 
 ---
