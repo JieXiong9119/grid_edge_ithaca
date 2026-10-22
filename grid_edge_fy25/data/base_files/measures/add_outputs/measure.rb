@@ -18,6 +18,17 @@ class AddOutputs < OpenStudio::Measure::ModelMeasure
 
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
+
+    # Most meters only exist in EnergyPlus when a matching component is present
+    # (e.g. Cooling:Electricity needs a cooling coil, WaterSystems:NaturalGas a
+    # gas water heater). Referencing a missing meter from an EMS sensor is a fatal
+    # EnergyPlus error, and the model objects cannot reliably predict which meters
+    # EnergyPlus will create. Only Electricity:Facility is guaranteed, so every
+    # other meter is opt-in (the load tables only need Electricity:Facility).
+    include_extra_meters = OpenStudio::Measure::OSArgument.makeBoolArgument('include_extra_meters', false)
+    include_extra_meters.setDisplayName('Include end-use, PV and non-electric fuel meters')
+    include_extra_meters.setDefaultValue(false)
+    args << include_extra_meters
     return args
   end
 
@@ -27,6 +38,8 @@ class AddOutputs < OpenStudio::Measure::ModelMeasure
     if !runner.validateUserArguments(arguments(model), user_arguments)
       return false
     end
+
+    include_extra_meters = runner.getBoolArgumentValue('include_extra_meters', user_arguments)
 
     # -------------------------------------------------------------------------
     # Sanitize a string for use as an EMS identifier.
@@ -155,26 +168,29 @@ class AddOutputs < OpenStudio::Measure::ModelMeasure
 
     # ── Electricity — unconditional (confirmed present in all ResStock models) ─
     # Source: .mdd validated against EP 24.2 ResStock runs
-    [
-      'Electricity:Facility',
-      'Electricity:Building',
-      'Electricity:HVAC',
-      'Fans:Electricity',
-      'Pumps:Electricity',
-      'InteriorLights:Electricity',
-      'ExteriorLights:Electricity',
-      'InteriorEquipment:Electricity',
-      'Cooling:Electricity',
-      'Heating:Electricity',
-      'WaterSystems:Electricity',
-    ].each { |m| add_meter(model, m) }
+    add_meter(model, 'Electricity:Facility')
+
+    if include_extra_meters
+      [
+        'Electricity:Building',
+        'Electricity:HVAC',
+        'Fans:Electricity',
+        'Pumps:Electricity',
+        'InteriorLights:Electricity',
+        'ExteriorLights:Electricity',
+        'InteriorEquipment:Electricity',
+        'Cooling:Electricity',
+        'Heating:Electricity',
+        'WaterSystems:Electricity',
+      ].each { |m| add_meter(model, m) }
+    end
 
     # ── Electricity — PV/battery systems ──────────────────────────────────────
     # Present when an ElectricLoadCenterDistribution exists (battery, PV, or both).
     # The .mdd confirms: ElectricityProduced:Facility, Cogeneration:Electricity,
     # ElectricityPurchased:Facility, ElectricitySurplusSold:Facility,
     # ElectricityNet:Facility are all instantiated together when ELCD exists.
-    if model.getElectricLoadCenterDistributions.any?
+    if include_extra_meters && model.getElectricLoadCenterDistributions.any?
       runner.registerInfo('PV/battery system detected -- adding electricity production/net meters.')
       [
         'ElectricityProduced:Facility',
@@ -223,7 +239,7 @@ class AddOutputs < OpenStudio::Measure::ModelMeasure
     }
 
     resstock_end_use_meters.each do |subcategory, meter_name|
-      if electric_subcategories.include?(subcategory)
+      if include_extra_meters && electric_subcategories.include?(subcategory)
         add_meter(model, meter_name)
       end
     end
@@ -233,9 +249,10 @@ class AddOutputs < OpenStudio::Measure::ModelMeasure
     # or 'water heater energy adjustment1' depending on ResStock version.
     # Check for either.
     wh_subcats = electric_subcategories.select { |s| s.start_with?('water heater energy adjustment') }
-    wh_subcats.each do |subcat|
-      meter_name = "#{subcat}:InteriorEquipment:Electricity"
-      add_meter(model, meter_name)
+    if include_extra_meters
+      wh_subcats.each do |subcat|
+        add_meter(model, "#{subcat}:InteriorEquipment:Electricity")
+      end
     end
 
     # ── Natural Gas ───────────────────────────────────────────────────────────
@@ -244,7 +261,7 @@ class AddOutputs < OpenStudio::Measure::ModelMeasure
               model.getWaterHeaterMixeds.any? { |wh| wh.heaterFuelType == 'NaturalGas' } ||
               model.getGasEquipments.any?
 
-    if has_gas
+    if include_extra_meters && has_gas
       runner.registerInfo('Natural gas equipment detected -- adding NaturalGas meters.')
       [
         'NaturalGas:Facility',
@@ -285,7 +302,7 @@ class AddOutputs < OpenStudio::Measure::ModelMeasure
     has_fueloil = model.getBoilerHotWaters.any? { |b| b.fuelType == 'FuelOilNo1' } ||
                   model.getWaterHeaterMixeds.any? { |wh| wh.heaterFuelType == 'FuelOilNo1' }
 
-    if has_fueloil
+    if include_extra_meters && has_fueloil
       runner.registerInfo('Fuel oil equipment detected -- adding FuelOilNo1 meters.')
       [
         'FuelOilNo1:Facility',
@@ -302,7 +319,7 @@ class AddOutputs < OpenStudio::Measure::ModelMeasure
                   model.getWaterHeaterMixeds.any? { |wh| wh.heaterFuelType == 'Propane' } ||
                   model.getCoilHeatingGass.any? { |c| c.fuelType == 'Propane' }
 
-    if has_propane
+    if include_extra_meters && has_propane
       runner.registerInfo('Propane equipment detected -- adding Propane meters.')
       [
         'Propane:Facility',
