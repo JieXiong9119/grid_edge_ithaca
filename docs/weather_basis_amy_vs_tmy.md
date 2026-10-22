@@ -45,4 +45,4 @@ Not different: building characteristics (`in.*`), the calendar year (2018 in bot
 
 - `1_resstock_models_download_and_run.ipynb` and `1.1_resstock_metadata_plots.ipynb` use AMY.
 - Old TMY model folders in `data/resstock_models/` must be deleted before re-downloading (the downloader skips folders that already have a `models` directory).
-- `3_resstock_timeseries_download.ipynb` (released timeseries) and the older `download_resstock_models*.ipynb` notebooks still use the **TMY3** release. Do not mix their output with AMY results.
+- `1.2_resstock_timeseries_download.ipynb` (released timeseries) and the older `download_resstock_models*.ipynb` notebooks still use the **TMY3** release. Do not mix their output with AMY results.

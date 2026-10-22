@@ -4,6 +4,8 @@ Data pipeline for the GRIDs project. It runs NLR/NREL ResStock building models f
 
 **Weather basis:** the project uses the **AMY** ResStock release for both metadata and models. See [docs/weather_basis_amy_vs_tmy.md](docs/weather_basis_amy_vs_tmy.md).
 
+**Methodology:** the full technical description (methods, justification, conventions, limitations) is in [docs/pipeline_summary.md](docs/pipeline_summary.md).
+
 ---
 
 # Contents
