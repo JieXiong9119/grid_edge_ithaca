@@ -1,0 +1,30 @@
+{
+  "seed_file": "",
+  "weather_file": "",
+  "measure_paths": [
+    "./measures"
+  ],
+  "run_directory": "./run/",
+  "file_paths": [
+    "./weather",
+    "./models"
+  ],
+  "steps": [
+    {
+      "measure_dir_name": "set_run_period",
+      "arguments": {
+        "timesteps_per_hour": 4,
+        "begin_date": "2023-01-01",
+        "end_date": "2023-12-31"
+      }
+    },
+    {
+      "measure_dir_name": "resstock_paths"
+    },
+    {
+      "measure_dir_name": "add_outputs",
+      "arguments": {
+      }
+    }
+  ]
+}

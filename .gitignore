@@ -1,14 +1,33 @@
-.ipynb_checkpoints
+# Local Python/editor state (do not relocate existing environments).
+.ipynb_checkpoints/
 .DS_Store
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv*/
+.vscode/
+build/
+dist/
+
+# Private inputs and generated artifacts. Track only their explanatory READMEs.
+/data/*
+!/data/README.md
+/models/*
+!/models/README.md
+/reports/*
+!/reports/README.md
+
+# Local historical snapshots and previously ignored legacy payloads.
+/archive/reorganization_*/
+/archive/legacy/grid_edge_fy25/data/*
+!/archive/legacy/grid_edge_fy25/data/base_files/
+/archive/legacy/grid_edge_fy25/data/base_files/*
+!/archive/legacy/grid_edge_fy25/data/base_files/building_ids_metadata.csv
+/archive/legacy/grid_edge_fy25/results/
 NY_baseline_metadata_and_annual_results.csv
 NY_baseline_metadata_and_annual_results.xlsx
-parquet
-grid_edge_fy25/data/resstock_models
-NREL
-grid_edge_fy25/data/data_dictionary.csv
-grid_edge_fy25/data/data_dictionary.xlsx
-results
-data
-data/resstock_models
-.venv
-.vscode
+NREL/
+
+# Compatibility junctions for absolute paths in existing simulation artifacts.
+/grid_edge_fy25/data/

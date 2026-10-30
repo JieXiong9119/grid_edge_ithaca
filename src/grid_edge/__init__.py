@@ -1,0 +1,1 @@
+"""Shared infrastructure for the notebook 0–5 load-profile pipeline."""

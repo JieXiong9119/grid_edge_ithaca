@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grid-edge-ithaca"
+version = "0.1.0"
+description = "Shared path infrastructure for the Ithaca AMI and ResStock notebooks"
+requires-python = ">=3.13"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pyright]
+include = ["src", "scripts", "tests"]
+exclude = ["archive", "models", "data", "resources", ".venv", ".venv-1", ".venv-2"]
+extraPaths = ["src"]

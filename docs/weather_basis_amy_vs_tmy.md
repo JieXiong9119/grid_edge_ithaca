@@ -1,12 +1,14 @@
 # Why we use AMY (not TMY) ResStock data
 
-**Decision:** use the **AMY** ResStock release for everything: the metadata CSV *and* the building models.
+**Decision:** use the **AMY** ResStock release for the current simulation pipeline: the metadata CSV *and* the building models. Optional notebook 1.2 downloads released TMY3 data for separate analysis, not for the AMY pipeline. See [data_flow.md](data_flow.md) and [repository_structure.md](repository_structure.md) for the working/archive boundaries.
 
 | Piece | What we use |
 |---|---|
-| Metadata | `grid_edge_fy25/data/input_files/NY_baseline_metadata_and_annual_results_2024_amy.csv` |
+| Baseline metadata | [../data/raw/resstock/NY_baseline_metadata_and_annual_results_2024_amy.csv](../data/raw/resstock/NY_baseline_metadata_and_annual_results_2024_amy.csv) |
+| Upgrade-04 metadata | [../data/raw/resstock/NY_upgrade04_metadata_and_annual_results_2024_amy.csv](../data/raw/resstock/NY_upgrade04_metadata_and_annual_results_2024_amy.csv) |
 | Models (S3) | `.../2024/resstock_amy2018_release_2/model_and_schedule_files/` |
-| Simulation weather | `grid_edge_fy25/data/base_files/weather/Ithaca_2024.epw` (same as before) |
+| Local original models | [../models/resstock_models/](../models/resstock_models/), [../models/resstock_models_up04/](../models/resstock_models_up04/) |
+| Simulation weather | [../resources/openstudio/weather/Ithaca_2024.epw](../resources/openstudio/weather/Ithaca_2024.epw) (same weather as before; only location changed) |
 
 ## Background
 
@@ -26,7 +28,7 @@ The buildings are the same in both: same `bldg_id`s, same characteristics (size,
 
 ## What the weather difference actually changes
 
-We simulate with `Ithaca_2024.epw` in both cases, so the hourly weather during the run is the same. The release still matters because each model has the original weather baked in. Checked on `bldg0000510`, the AMY and TMY models differ in:
+We simulate with [../resources/openstudio/weather/Ithaca_2024.epw](../resources/openstudio/weather/Ithaca_2024.epw) in both cases, so the hourly weather during the run is the same. The release still matters because each model has the original weather baked in. Checked on `bldg0000510`, the AMY and TMY models differ in:
 
 - **Equipment sizing:** heating/cooling capacities and airflows were sized against each release's design weather (AMY about 1.7-1.8% smaller overall).
 - **Ground temperatures** and **daylight-saving dates** inside the model.
@@ -37,12 +39,15 @@ Not different: building characteristics (`in.*`), the calendar year (2018 in bot
 
 ## Honest limits
 
-- "AMY" here is **2018** weather, not 2024. It is closer in spirit to real weather than TMY, but it is not 2024. The 2024 weather only enters through `Ithaca_2024.epw`.
+- "AMY" here is **2018** weather, not 2024. It is closer in spirit to real weather than TMY, but it is not 2024. The 2024 weather only enters through [../resources/openstudio/weather/Ithaca_2024.epw](../resources/openstudio/weather/Ithaca_2024.epw).
 - We did **not** run both versions end-to-end and compare simulated load profiles. The model differences above are small, so profiles are expected to be close but not identical. If this matters, run a few buildings both ways.
 - If you only use `bldg_id` and `in.*` from the metadata and never use `out.*`, TMY would work too. We chose AMY so everything is consistent and the `out.*` columns are safe to use.
 
+Here, safe use of `out.*` means describing the matching **release's own weather simulations**, not comparing those annual values with the locally re-simulated 2024 loads. This path/documentation update does not repeat the historical checks or rerun either weather case.
+
 ## Consequences for the repo
 
-- `1_resstock_models_download_and_run.ipynb` and `1.1_resstock_metadata_plots.ipynb` use AMY.
-- Old TMY model folders in `data/resstock_models/` must be deleted before re-downloading (the downloader skips folders that already have a `models` directory).
-- `1.2_resstock_timeseries_download.ipynb` (released timeseries) and the older `download_resstock_models*.ipynb` notebooks still use the **TMY3** release. Do not mix their output with AMY results.
+- [../notebooks/1_resstock_models_download_and_run.ipynb](../notebooks/1_resstock_models_download_and_run.ipynb) and [../notebooks/1.1_resstock_metadata_plots.ipynb](../notebooks/1.1_resstock_metadata_plots.ipynb) use AMY. Simulated original and rebuilt load tables live in [../data/interim/resstock/](../data/interim/resstock/), selected IDs in [../data/interim/selection/](../data/interim/selection/), and metadata plots in [../reports/metadata/](../reports/metadata/).
+- **Retain old TMY models; do not delete them to force re-download.** The downloader skips existing model subfolders, so inspect release provenance first. Before deliberate replacement, preserve the complete old tree with its release, selection, weather, engine/measure versions and outputs in a provenance-labelled archive. Do not relocate anything referenced by a running job or the saved-workflow compatibility junctions; follow [repository_structure.md](repository_structure.md#launching-and-local-compatibility).
+- [../notebooks/1.2_resstock_timeseries_download.ipynb](../notebooks/1.2_resstock_timeseries_download.ipynb) still uses **TMY3**. Its optional outputs go only to data/external/resstock_released/ (`PATHS.released`), carry `_released` tags and are not consumed by notebooks 2–5. They do not use the local Ithaca weather.
+- Older TMY download notebooks, alternate metadata and duplicate weather remain in the preserved legacy project tree under the archive; they are historical references, not current inputs. See [repository_structure.md](repository_structure.md#historical-work-not-current-dependencies). Their paths may require manual changes to rerun, and their outputs must not be mixed into the AMY flow.

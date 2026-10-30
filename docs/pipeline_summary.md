@@ -1,6 +1,8 @@
 # Residential load profiles for transformer nodes from AMI and ResStock: methodology
 
-Technical report for the GRIDs project pipeline (Dryden, NY distribution circuit). It describes **what** each step does and **why**; the scenario results of notebook 5 are summarised in §12. Notebooks are in `grid_edge_fy25/notebooks/`; all paths are under `grid_edge_fy25/` unless noted. Weather-release choice: see [weather_basis_amy_vs_tmy.md](weather_basis_amy_vs_tmy.md).
+Technical report for the GRIDs project pipeline (Dryden, NY distribution circuit). It describes **what** each step does and **why**; the scenario results of notebook 5 are summarised in §12. The eight current notebooks (0, 1, 1.1, 1.2, 2, 3, 4, 5) are in [../notebooks/](../notebooks/). Paths now refer to canonical locations at the repository root, resolved through `PATHS` in [../src/grid_edge/paths.py](../src/grid_edge/paths.py); links are relative to this document. Weather-release choice: see [weather_basis_amy_vs_tmy.md](weather_basis_amy_vs_tmy.md).
+
+**Documentation-only relocation update.** Scientific methods, numerical results and the published figures below are retained, not recomputed. For practical setup, artifact schemas and archive/compatibility policy, see [../README.md](../README.md), [data_flow.md](data_flow.md) and [repository_structure.md](repository_structure.md). Historical branch-comparison notebooks, optimization prototypes and UrbanOpt work are preserved in the archive, not part of the working flow.
 
 ## Contents
 
@@ -41,9 +43,9 @@ Technical report for the GRIDs project pipeline (Dryden, NY distribution circuit
 
 Run the notebooks top to bottom, in this order:
 
-**0 → 1 → (external mapping) → 1.1 → 2 → 3 → 4 → 5**
+**0 and 1 independently → external mapping → 2 → 3 → 4 → 5**
 
-Notebooks 0 and 1 do not depend on each other and can run in either order. Notebook 1.2 is optional.
+Notebooks 0 and 1 do not depend on each other and can run in either order. Notebook 1.1 is optional analysis after matching. Notebook 1.2 is optional released-TMY exploration, isolated from the AMY pipeline. Notebook 2 needs notebook 1's models/selections but not the matching result, so its simulations can proceed independently of matching.
 
 ### 2.1 Run order and dependencies
 
@@ -52,12 +54,11 @@ flowchart TD
     N0["0 AMI prep + aggregation"]
     N1["1 ResStock models: download + run<br/>(baseline, up04)"]
     M["buildstock-ami-mapping<br/>(external repo)"]
-    N11["1.1 metadata plots"]
+    N11["1.1 metadata plots<br/>(optional, post-match)"]
     N12["1.2 released timeseries<br/>(optional, TMY3)"]
     N2["2 re-simulate: rebuilt + demand flex"]
     N3["3 load tables (+ meter_ids)"]
     N4["4 ResStock aggregation to transformer nodes"]
-    NC["Aggregate ResStock and AMI to Feeder Node<br/>(comparison)"]
     N5["5 post-process + visualize<br/>(scenario results)"]
 
     N0 -->|ami_ind_data_15| M
@@ -66,31 +67,30 @@ flowchart TD
     M -->|match_report.csv| N3
     M -->|match_report.csv| N4
     N1 -->|models + building-ID lists| N2
-    N1 -.-> N12
+    N1 -.->|building-ID list only| N12
     N2 -->|rebuilt model folders| N3
     N3 -->|resstock_timeseries_all_15_scenario| N4
     N0 -->|ami_meter_xfr_map + ami_meter_wide_15| N4
-    N0 --> NC
-    N4 --> NC
     N4 -->|resstock_plus_ami_fallback node tables| N5
 ```
 
 | Step | Notebook / tool | Needs | What you get |
 |---|---|---|---|
-| 0 | `0_ami_data_prep_and_aggregation.ipynb` | raw AMI file, `location_reference.csv` | Cleaned 2024 AMI tables; AMI aggregated per transformer node; meter-to-transformer map and meter-wide AMI table |
-| 1 | `1_resstock_models_download_and_run.ipynb` | NY metadata CSV, OpenStudio | Downloaded and simulated ResStock buildings (baseline and upgrade 4), original load tables |
-| ext | `buildstock-ami-mapping` (external) | outputs of 0 and 1 | `results/match_report.csv` (AMI meter to ResStock building) |
-| 1.1 | `1.1_resstock_metadata_plots.ipynb` | `match_report.csv`, metadata CSV | Distribution plots of matched buildings |
-| 1.2 | `1.2_resstock_timeseries_download.ipynb` (optional) | building-ID list from 1 | NREL-released TMY3 timeseries (not used downstream) |
-| 2 | `2_resstock_models_df_run.ipynb` | models and building-ID lists from 1 | Rebuilt models (2025_Release_1 measures) and demand-flex models, simulated |
-| 3 | `3_resstock_load_table_build.ipynb` | rebuilt models from 2, `match_report.csv` | Load tables per scenario with a `meter_ids` column; `building_to_meter_map.csv` |
-| 4 | `4_resstock_aggregation.ipynb` | load tables from 3, `match_report.csv`, AMI map and meter-wide table from 0 | ResStock residential load per transformer node for each scenario, with AMI fallback for unmatched meters |
-| 5 | `5_postprocess_visualize.ipynb` | `resstock_plus_ami_fallback` node tables from 4 (three rebuilt scenarios) | Scenario comparison of energy and peak demand at system and node level, including peaks within the demand-flex window (§12) |
-| - | `Aggregate ResStock and AMI to Feeder Node_02022026-Copy1.ipynb` | aggregated node files from 0 and 4 | Branch-level ResStock vs AMI comparison plots |
+| 0 | [../notebooks/0_ami_data_prep_and_aggregation.ipynb](../notebooks/0_ami_data_prep_and_aggregation.ipynb) | Raw AMI and network location reference | Cleaned 2024 AMI tables; AMI aggregated per transformer node; meter-to-transformer map and meter-wide AMI table |
+| 1 | [../notebooks/1_resstock_models_download_and_run.ipynb](../notebooks/1_resstock_models_download_and_run.ipynb) | NY AMY metadata CSV, weather/workflow, OpenStudio | Downloaded and simulated ResStock buildings (baseline and upgrade 4), original load tables |
+| ext | `buildstock-ami-mapping` (external) | outputs of 0 and 1 (original baseline) | [../data/external/matching/match_report.csv](../data/external/matching/match_report.csv) (AMI meter to ResStock building) |
+| 1.1 | [../notebooks/1.1_resstock_metadata_plots.ipynb](../notebooks/1.1_resstock_metadata_plots.ipynb) (optional) | Match report, AMY metadata CSV | Distribution plots of matched buildings |
+| 1.2 | [../notebooks/1.2_resstock_timeseries_download.ipynb](../notebooks/1.2_resstock_timeseries_download.ipynb) (optional) | building-ID list from 1 | NREL-released TMY3 timeseries (not used downstream) |
+| 2 | [../notebooks/2_resstock_models_df_run.ipynb](../notebooks/2_resstock_models_df_run.ipynb) | models and building-ID lists from 1, external 2025 measures | Rebuilt models (2025_Release_1 measures) and demand-flex models, simulated |
+| 3 | [../notebooks/3_resstock_load_table_build.ipynb](../notebooks/3_resstock_load_table_build.ipynb) | rebuilt models from 2, match report | Load tables per scenario with a `meter_ids` column; [../data/interim/selection/building_to_meter_map.csv](../data/interim/selection/building_to_meter_map.csv) |
+| 4 | [../notebooks/4_resstock_aggregation.ipynb](../notebooks/4_resstock_aggregation.ipynb) | load tables from 3, match report, AMI map and meter-wide table from 0 | ResStock residential load per transformer node for each scenario, with AMI fallback for unmatched meters |
+| 5 | [../notebooks/5_postprocess_visualize.ipynb](../notebooks/5_postprocess_visualize.ipynb) | `resstock_plus_ami_fallback` node tables from 4 (three rebuilt scenarios) | Scenario comparison of energy and peak demand at system and node level, including peaks within the demand-flex window (§12) |
+
+The unnumbered branch-level ResStock vs AMI comparison and its figures are retained as historical work in the archived legacy project tree (see [repository_structure.md](repository_structure.md#historical-work-not-current-dependencies)), not as an additional current notebook. Its former inputs were the aggregated AMI/ResStock node files and branch service-point lists; rerunning it may require manual path changes. The older AMI/ResStock aggregation notebook is likewise superseded by notebooks 0 and 4; its OpenDSS cross-check remains historical.
 
 ### 2.2 Scenarios analysed
 
-All scenarios use the same 766 buildings (7 counties), the `Ithaca_2024.epw` weather file and 35,040 15-minute timestamps. Upgrade 4 only applies to part of the buildings (`applicability == True`); the rest are filled according to `MISSING_BLDG_POLICY` in notebook 4.
+All scenarios use the same 766 buildings (7 counties), the [../resources/openstudio/weather/Ithaca_2024.epw](../resources/openstudio/weather/Ithaca_2024.epw) weather file and 35,040 15-minute timestamps. Upgrade 4 only applies to part of the buildings (`applicability == True`); the rest are filled according to `MISSING_BLDG_POLICY` in notebook 4.
 
 | Scenario | Made by | Description | Used for |
 |---|---|---|---|
@@ -105,28 +105,28 @@ Compare scenarios only among the three rebuilt runs. The original runs are kept 
 
 ### 2.3 Inputs and outputs per step
 
-`<s>` is a scenario name, `<g>` the AMI gap tag.
+`<s>` is a scenario name, `<g>` the AMI gap tag; `<t>` is `<s>` plus optional `_midfix` at aggregation time. Filename patterns below retain their original basenames. Private/generated links require the corresponding local artifacts. Schema and unit details are in [data_flow.md](data_flow.md#producer--consumer-contracts).
 
 | Step | Inputs | Outputs |
 |---|---|---|
-| 0 | `data/input_files/consumption/ch1_4301002_individual.csv`, `data/input_files/location_reference.csv` | `data/parquet/ami_ind_data_15.*`, `ami_ind_data_hour.*`, `ami_duplicates_2024.csv`, `ami_meter_wide_15_<g>.parquet`; `results/aggregated_load_nodes_wide_ami_<g>.*`, `aggregated_load_nodes_ami_<g>_report.csv`, `ami_meter_xfr_map.csv`, `ami_meter_gap_summary.csv` |
-| 1 | `data/input_files/NY_baseline_metadata_and_annual_results_2024_amy.csv` (and `NY_upgradeNN_...` for an upgrade), `data/base_files/` (workflow, measures, weather) | `data/base_files/building_ids_metadata_2024[_upNN].csv`, `data/resstock_models[_upNN]/`, `data/parquet/resstock_timeseries_all_15[_upNN].*`, `..._all_hour...`, `..._annual...` |
-| ext | `ami_ind_data_15` (0), `resstock_timeseries_all_15` (1) | `results/match_report.csv` |
-| 1.1 | `results/match_report.csv`, metadata CSV | `results/plots[_upNN]/`, `results/plots_spot_ids[_upNN]/` |
-| 1.2 | `data/base_files/building_ids_metadata_2024[_upNN].csv`, public S3 bucket | `data/parquet/resstock_timeseries_*_released[_upNN].*` |
-| 2 | `data/resstock_models[_up04]/`, building-ID lists (1), 2025_Release_1 measures, `Ithaca_2024.epw` | `data/resstock_models_rebuilt/`, `data/resstock_models_up04_rebuilt/`, `data/resstock_models_up04_df/` (each building with `run/eplusout.csv`) |
-| 3 | rebuilt model folders (2), building-ID lists (1), `results/match_report.csv` | `data/parquet/resstock_timeseries_all_15_<s>.*`, `..._all_hour_<s>.*`, `..._annual_<s>.*` (each with `meter_ids`); `results/building_to_meter_map.csv` |
-| 4 | `data/parquet/resstock_timeseries_all_15_<s>.parquet` (3), `results/match_report.csv`, `results/ami_meter_xfr_map.csv` and `data/parquet/ami_meter_wide_15_<g>.parquet` (0) | per scenario in `results/`: `aggregated_load_nodes_wide_resstock_RES_<s>.*`, `..._ami_fallback_RES_<s>_ami-<g>.*`, `..._resstock_plus_ami_fallback_RES_<s>_ami-<g>.*`, `resstock_aggregation_report_<s>.csv`, `resstock_meter_sources_<s>.csv`; plus `resstock_meter_status.csv` |
-| 5 | `results/aggregated_load_nodes_wide_resstock_plus_ami_fallback_RES_<s>_ami-<g>.*` (4), `resstock_aggregation_report_baseline_rebuilt.csv` (check), `data/resstock_models_up04_df/*/run/in.schedules.csv` (window check) | `results/figures_postprocess/*.csv`, `*.png` (§12.10) |
+| 0 | [../data/raw/ami/ch1_4301002_individual.csv](../data/raw/ami/ch1_4301002_individual.csv), [../data/raw/network/location_reference.csv](../data/raw/network/location_reference.csv) | In [../data/interim/ami/](../data/interim/ami/): `ami_ind_data_15.*`, `ami_ind_data_hour.*`, `ami_meter_wide_15_<g>.parquet`, meter-to-transformer map; in [../data/processed/node_loads/](../data/processed/node_loads/): `aggregated_load_nodes_wide_ami_<g>.*`; in [../reports/diagnostics/](../reports/diagnostics/): AMI duplicate/gap summaries and `aggregated_load_nodes_ami_<g>_report.csv` |
+| 1 | Baseline/upgrade AMY metadata in [../data/raw/resstock/](../data/raw/resstock/); [../resources/openstudio/](../resources/openstudio/) (workflow, measures, weather) | `building_ids_metadata_2024[_upNN].csv` in [../data/interim/selection/](../data/interim/selection/); original model trees in [../models/](../models/); `resstock_timeseries_all_15[_upNN].*`, `resstock_timeseries_all_hour[_upNN].*`, `resstock_timeseries_annual[_upNN].*` in [../data/interim/resstock/](../data/interim/resstock/) |
+| ext | Cleaned long AMI (0), original baseline ResStock 15-min table (1) | [../data/external/matching/match_report.csv](../data/external/matching/match_report.csv) |
+| 1.1 | External match report, AMY metadata CSV | `plots[_upNN]` and `plots_spot_ids[_upNN]` subfolders in [../reports/metadata/](../reports/metadata/) |
+| 1.2 | Building-ID list in [../data/interim/selection/](../data/interim/selection/), public S3 bucket | Optional `resstock_timeseries_*_released[_upNN].*` under data/external/resstock_released/ (`PATHS.released`), isolated from the AMY pipeline |
+| 2 | [../models/resstock_models/](../models/resstock_models/), [../models/resstock_models_up04/](../models/resstock_models_up04/), building-ID lists (1), external 2025_Release_1 measures, shared Ithaca weather | [../models/resstock_models_rebuilt/](../models/resstock_models_rebuilt/), [../models/resstock_models_up04_rebuilt/](../models/resstock_models_up04_rebuilt/), [../models/resstock_models_up04_df/](../models/resstock_models_up04_df/) (each building's run output) |
+| 3 | Rebuilt model folders (2), building-ID lists (1), external match report | `resstock_timeseries_all_15_<s>.*`, `resstock_timeseries_all_hour_<s>.*`, `resstock_timeseries_annual_<s>.*` in [../data/interim/resstock/](../data/interim/resstock/) (each with `meter_ids`); [../data/interim/selection/building_to_meter_map.csv](../data/interim/selection/building_to_meter_map.csv) |
+| 4 | Scenario 15-min Parquet in [../data/interim/resstock/](../data/interim/resstock/) (3), external match report, [../data/interim/ami/ami_meter_xfr_map.csv](../data/interim/ami/ami_meter_xfr_map.csv) and gap-tagged meter-wide AMI (0) | In [../data/processed/node_loads/](../data/processed/node_loads/): `aggregated_load_nodes_wide_resstock_RES_<t>.*`, `aggregated_load_nodes_wide_ami_fallback_RES_<t>_ami-<g>.*`, `aggregated_load_nodes_wide_resstock_plus_ami_fallback_RES_<t>_ami-<g>.*`; in [../reports/diagnostics/](../reports/diagnostics/): `resstock_aggregation_report_<t>.csv`, `resstock_meter_sources_<t>.csv`, meter status report |
+| 5 | Combined residential scenario node tables in [../data/processed/node_loads/](../data/processed/node_loads/) (4); [../reports/diagnostics/resstock_aggregation_report_baseline_rebuilt.csv](../reports/diagnostics/resstock_aggregation_report_baseline_rebuilt.csv) (check); per-building DF run schedules in [../models/resstock_models_up04_df/](../models/resstock_models_up04_df/) (window check) | All CSV summaries and PNG figures in [../reports/postprocess/](../reports/postprocess/) (§12.10) |
 
 ### 2.4 Final outcomes
 
-- **Transformer-node residential load per scenario** (`aggregated_load_nodes_wide_resstock_plus_ami_fallback_RES_<s>_ami-<g>.*`): the main input for the optimization work. For each of the three rebuilt scenarios it holds one 15-minute column per transformer (`<gisid>_RES`), ResStock for matched meters and AMI for the unmatched ones.
-- **Measured AMI load per transformer node** (`aggregated_load_nodes_wide_ami_<g>.*`): residential and non-residential columns (`_RES`, `_NRS`), the reference and the source of the non-residential load.
-- **Building load tables with `meter_ids`** (`resstock_timeseries_all_15_<s>.*`): 15-minute, hourly and annual ResStock loads per building, linked to the matched AMI meters.
-- **Traceability reports:** `resstock_meter_sources_<s>.csv` and `resstock_meter_status.csv` show which meters use ResStock and which fall back to AMI.
-- **Comparison and plots:** metadata distribution plots (1.1) and the ResStock vs AMI branch comparison.
-- **Scenario results** (`results/figures_postprocess/`): summary tables and figures of energy and peak demand per scenario and per pairwise comparison (notebook 5, §12).
+- **Transformer-node residential load per scenario** (`aggregated_load_nodes_wide_resstock_plus_ami_fallback_RES_<t>_ami-<g>.*` in [../data/processed/node_loads/](../data/processed/node_loads/)): the main input for the optimization work. For each of the three rebuilt scenarios it holds one 15-minute column per transformer (`<gisid>_RES`), ResStock for matched meters and AMI for the unmatched ones.
+- **Measured AMI load per transformer node** (`aggregated_load_nodes_wide_ami_<g>.*` in [../data/processed/node_loads/](../data/processed/node_loads/)): residential and non-residential columns (`_RES`, `_NRS`), the reference and the source of the non-residential load.
+- **Building load tables with `meter_ids`** (`resstock_timeseries_all_15_<s>.*` and hourly/annual counterparts in [../data/interim/resstock/](../data/interim/resstock/)): 15-minute, hourly and annual ResStock loads per building, linked to the matched AMI meters.
+- **Traceability reports:** `resstock_meter_sources_<t>.csv` and [../reports/diagnostics/resstock_meter_status.csv](../reports/diagnostics/resstock_meter_status.csv) in [../reports/diagnostics/](../reports/diagnostics/) show which meters use ResStock and which fall back to AMI.
+- **Comparison and plots:** metadata distribution plots (1.1) in [../reports/metadata/](../reports/metadata/); the ResStock vs AMI branch comparison and its figures remain archived historical work.
+- **Scenario results** ([../reports/postprocess/](../reports/postprocess/)): summary tables and figures of energy and peak demand per scenario and per pairwise comparison (notebook 5, §12).
 
 ---
 
@@ -134,11 +134,11 @@ Compare scenarios only among the three rebuilt runs. The original runs are kept 
 
 | Source | Content | Used for |
 |---|---|---|
-| AMI interval data (`ch1_4301002_individual.csv`) | `SERVICEPOINTID`, `CHANNELNUMBER`, `ENDTIME_EST` (interval end), `INTERVAL_READ` (kWh per 15 min); about 792 service points (SPIDs) on the Dryden circuit, 154 of them non-residential | Measured reference, matching target, fallback load |
-| Location reference (`location_reference.csv`) | SPID → transformer (`xfr_gisid`) and sector (`Residential`) | Meter-to-node map |
+| AMI interval data ([../data/raw/ami/ch1_4301002_individual.csv](../data/raw/ami/ch1_4301002_individual.csv)) | `SERVICEPOINTID`, `CHANNELNUMBER`, `ENDTIME_EST` (interval end), `INTERVAL_READ` (kWh per 15 min); about 792 service points (SPIDs) on the Dryden circuit, 154 of them non-residential | Measured reference, matching target, fallback load |
+| Location reference ([../data/raw/network/location_reference.csv](../data/raw/network/location_reference.csv)) | SPID → transformer (`xfr_gisid`) and sector (`Residential`) | Meter-to-node map |
 | ResStock metadata, AMY release (`resstock_amy2018_release_2`, OEDI bucket `oedi-data-lake`) | Building characteristics, upgrade applicability, annual results for NY | Building selection |
-| ResStock building models (same release) | Per-building `home.xml`, `in.schedules.csv`, `in.osm` for the baseline and upgrade 4 | Simulation |
-| Weather file `Ithaca_2024.epw` | Actual 2024 weather for Ithaca | All simulations |
+| ResStock building models (same release), in [../models/](../models/) | Per-building `home.xml`, `in.schedules.csv`, `in.osm` for the baseline and upgrade 4 | Simulation |
+| Weather file [../resources/openstudio/weather/Ithaca_2024.epw](../resources/openstudio/weather/Ithaca_2024.epw) | Actual 2024 weather for Ithaca | All simulations |
 | OpenDSS feeder model | Transformer-level topology | Node definitions downstream (not used for the load build) |
 
 **Building sample.** All 766 NY ResStock buildings in the seven counties around Ithaca (Cayuga, Chemung, Cortland, Schuyler, Seneca, Tioga, Tompkins) are simulated, not only the ones that end up matched. Justification: the matching step needs a candidate pool, and the pool should reflect the regional stock (climate zone, vintages, heating fuels) rather than the state as a whole. The county filter keeps the pool small enough to simulate locally while remaining representative of the circuit.
@@ -153,7 +153,7 @@ Compare scenarios only among the three rebuilt runs. The original runs are kept 
 | Duplicates | Average rows with the same (SPID, timestamp) | All duplicates are the daylight-saving fall-back hour (Nov 3, 01:00–01:45), recorded twice in local clock time. Averaging keeps one value per interval on a regular grid; summing would double the hour, dropping one copy would be arbitrary |
 | Leap day | Drop Feb 29 | The ResStock schedules have 365 days (35,040 rows); keeping Feb 29 would shift every later day by one against the simulations |
 | Hourly table | Sum the four 15-min values by `floor(hour)` of the interval-end timestamp | Same convention as the ResStock hourly tables, so the two are directly comparable (see §11) |
-| Diagnostic | Report multi-channel meters and duplicate rows (`ami_duplicates_2024.csv`) | Makes the duplicate handling auditable |
+| Diagnostic | Report multi-channel meters and duplicate rows ([../reports/diagnostics/ami_duplicates_2024.csv](../reports/diagnostics/ami_duplicates_2024.csv)) | Makes the duplicate handling auditable |
 
 Values stay in kWh per 15 min (energy, not power) throughout, so aggregation is a plain sum and energy is conserved by construction.
 
@@ -175,7 +175,7 @@ The gap tag (`zero`, `nan`, `interp<N>`) is written into every output name so th
 
 **Aggregation.** Each node column `<xfr_gisid>_<RES|NRS>` is $\sum_m w_m \, E_m(t)$ over the meters with AMI on that transformer and sector, with `skipna=False` so that unresolved gaps stay visible. For `zero`, an assertion checks that total meter energy equals total node energy (relative tolerance $10^{-9}$).
 
-**Outputs for later steps.** The map (`ami_meter_xfr_map.csv`) and the gap-handled meter-wide table (`ami_meter_wide_15_<g>.parquet`) are saved so that notebook 4 reuses exactly the same map, weights and gap treatment for its AMI fallback.
+**Outputs for later steps.** The map ([../data/interim/ami/ami_meter_xfr_map.csv](../data/interim/ami/ami_meter_xfr_map.csv)) and the gap-handled meter-wide table (`ami_meter_wide_15_<g>.parquet` in [../data/interim/ami/](../data/interim/ami/)) are saved so that notebook 4 reuses exactly the same map, weights and gap treatment for its AMI fallback. The per-meter gap summary is [../reports/diagnostics/ami_meter_gap_summary.csv](../reports/diagnostics/ami_meter_gap_summary.csv).
 
 ## 6. ResStock selection, download and simulation (notebook 1)
 
@@ -183,17 +183,19 @@ The gap tag (`zero`, `nan`, `interp<N>`) is written into every output name so th
 
 **Download.** Models are fetched from the public OEDI bucket in parallel (boto3 multipart, AWS CLI fallback); finished downloads are skipped on re-runs.
 
-**Simulation.** Each model runs with OpenStudio 3.8.0 / EnergyPlus 24.1 through `workflow_resstock.osw`, seeded with the released `in.osm` and pointed at `Ithaca_2024.epw`. Justification: the released `in.osm` reproduces the released model exactly, so the only change from the release is the weather. The run period is set to 2023-01-01 to 2023-12-31 at 4 timesteps per hour (`set_run_period`), giving 35,040 intervals that match the 365-day schedules.
+**Simulation.** Each model runs with OpenStudio 3.8.0 / EnergyPlus 24.1 through [../resources/openstudio/workflow_resstock.osw](../resources/openstudio/workflow_resstock.osw), seeded with the released `in.osm` and pointed at [../resources/openstudio/weather/Ithaca_2024.epw](../resources/openstudio/weather/Ithaca_2024.epw). Justification: the released `in.osm` reproduces the released model exactly, so the only change from the release is the weather. The run period is set to 2023-01-01 to 2023-12-31 at 4 timesteps per hour (`set_run_period`), giving 35,040 intervals that match the 365-day schedules.
 
 **Outputs measure.** `add_outputs` registers an EMS sensor on `Electricity:Facility` and reports it in kWh per timestep. Only this meter is registered by default: EnergyPlus creates some meters (e.g. `Cooling:Electricity`, `WaterSystems:NaturalGas`) only when a matching component exists, and a sensor on a missing meter aborts the run. Additional meters are opt-in (`include_extra_meters`).
 
 **Failure handling.** A building fails if OpenStudio returns non-zero or `run/failed.job` exists; the first Severe error of each failure is summarised by cause. Re-runs skip finished buildings, so a batch can be resumed after fixing the cause.
 
-**Load tables.** `eplusout.csv` of every finished building is condensed into 15-min, hourly and annual tables (`resstock_timeseries_all_15[_upNN]`, …), with the time conventions of §11. These "original" tables feed the matching step.
+**Load tables.** `eplusout.csv` of every finished building is condensed into 15-min, hourly and annual tables (`resstock_timeseries_all_15[_upNN]`, …) in [../data/interim/resstock/](../data/interim/resstock/), with the time conventions of §11. These "original" tables feed the matching step. Building selections live in [../data/interim/selection/](../data/interim/selection/); per-building model/run artifact names in this report are relative to their scenario tree under [../models/](../models/), not to the old project data folder.
 
 ## 7. Building–meter matching (external step)
 
-Matching is done in the separate `buildstock-ami-mapping` repository (`grid-edge` branch) from the 15-min AMI table (notebook 0) and the original ResStock baseline table (notebook 1). It ranks candidate buildings for each residential meter by load-shape agreement (CVRMSE, peak timing similarity and related shape metrics) and writes `results/match_report.csv` (`meter id` → `ResStock_ids`).
+Matching is done in the separate `buildstock-ami-mapping` repository (`grid-edge` branch) from the 15-min AMI table (notebook 0) and the original ResStock baseline table (notebook 1). It ranks candidate buildings for each residential meter by load-shape agreement (CVRMSE, peak timing similarity and related shape metrics). Copy its result to [../data/external/matching/match_report.csv](../data/external/matching/match_report.csv) (`meter id` → `ResStock_ids`); it is an external handoff, not a locally generated diagnostic.
+
+The handoff uses unique meter rows and serialized integer lists (`[]` for no match); notebook 3 and 4 reject duplicate meter IDs. Preserve source table identities, matching settings and mapping-repository revision when replacing it. See [data_flow.md](data_flow.md#external-matching-handoff) for the exact schema and provenance contract.
 
 Properties that the later steps rely on:
 
@@ -233,7 +235,7 @@ Properties that the later steps rely on:
 
 **Conventions.** Identical to notebook 1 (column `EMS:EMS_ElectricityFacility_kWh [](TimeStep)`, `2024-` label prefix, midnight relabel, `floor(hour)` sums; §11), so original and rebuilt tables can be read with the same code.
 
-**`meter_ids`.** Every row carries the list of AMI meters the building is matched to (from `match_report.csv`; `[]` when unmatched), and `building_to_meter_map.csv` lists the pairs. Justification: the building–meter relation is many-to-many; carrying it with the load data lets downstream users filter or join without re-reading the match report.
+**`meter_ids`.** Every row carries the list of AMI meters the building is matched to (from [../data/external/matching/match_report.csv](../data/external/matching/match_report.csv); `[]` when unmatched), and [../data/interim/selection/building_to_meter_map.csv](../data/interim/selection/building_to_meter_map.csv) records the reverse relation. Justification: the building–meter relation is many-to-many; carrying it with the load data lets downstream users filter or join without re-reading the match report. The lists are serialized text, including in the scenario Parquet tables; the reverse map has `building_id`, `meter_id_list` and `n_meters`.
 
 **Streaming.** Buildings are read in parallel and written incrementally to Parquet/CSV, so the full 15-min table (tens of millions of rows) never has to fit in memory. CSV output is optional (`WRITE_CSV`).
 
@@ -253,14 +255,14 @@ $$
 E_x^{\text{RES}}(t) = \sum_{m \in M_x^{\text{matched}}} w_{m,x} \, E_m^{\text{ResStock}}(t) + \sum_{m \in M_x^{\text{fallback}}} w_{m,x} \, E_m^{\text{AMI}}(t)
 $$
 
-**AMI fallback.** Residential meters with an empty match list or absent from the match report keep their measured AMI load (from `ami_meter_wide_15_<g>`, i.e. with the chosen gap treatment). Justification: dropping them would under-state node load, while assigning an arbitrary building would invent a load shape. The fallback part is unchanged across scenarios, which is a stated limitation (§13). Meters with neither a match nor AMI contribute nothing and are flagged `no_data`. The ResStock part, the fallback part and their sum are written as separate files so that each can be used or checked on its own.
+**AMI fallback.** Residential meters with an empty match list or absent from the match report keep their measured AMI load (from `ami_meter_wide_15_<g>` in [../data/interim/ami/](../data/interim/ami/), i.e. with the chosen gap treatment). Justification: dropping them would under-state node load, while assigning an arbitrary building would invent a load shape. The fallback part is unchanged across scenarios, which is a stated limitation (§13). Meters with neither a match nor AMI contribute nothing and are flagged `no_data`. The ResStock part, the fallback part and their sum are written as separate files in [../data/processed/node_loads/](../data/processed/node_loads/) so that each can be used or checked on its own.
 
 **Buildings missing from a scenario.** Upgrade 4 applies to only part of the stock, so some matched buildings have no upgrade series. `MISSING_BLDG_POLICY`:
 
 - `"baseline"` (default): use the building's `baseline_rebuilt` series, i.e. a non-applicable building keeps its existing equipment. This mirrors how ResStock itself treats non-applicable buildings.
 - `"ami"`: send the whole meter to the AMI fallback.
 
-**Checks and traceability.** Per scenario, the total energy of the ResStock node table is asserted equal to the weighted sum of the meter loads (relative tolerance $10^{-9}$). `resstock_meter_status.csv` (`match_status` = `matched`, `empty_match` or `not_in_report`, plus `has_ami`) and `resstock_meter_sources_<s>.csv` (source per meter: `resstock`, `ami_fallback` or `no_data`, with the reason) make every node value traceable to its meters and buildings; `resstock_aggregation_report_<s>.csv` summarises each transformer.
+**Checks and traceability.** Per scenario, the total energy of the ResStock node table is asserted equal to the weighted sum of the meter loads (relative tolerance $10^{-9}$). [../reports/diagnostics/resstock_meter_status.csv](../reports/diagnostics/resstock_meter_status.csv) (`match_status` = `matched`, `empty_match` or `not_in_report`, plus `has_ami`) and `resstock_meter_sources_<t>.csv` (source per meter: `resstock`, `ami_fallback` or `no_data`, with the reason) make every node value traceable to its meters and buildings; `resstock_aggregation_report_<t>.csv` summarises each transformer. All these reports live in [../reports/diagnostics/](../reports/diagnostics/).
 
 **Non-residential load** is not modelled; the `_NRS` columns of notebook 0 are used unchanged.
 
@@ -279,13 +281,13 @@ These conventions are documented rather than corrected in the data because the o
 
 ## 12. Scenario results (notebook 5)
 
-`5_postprocess_visualize.ipynb` compares the three rebuilt scenarios using `aggregated_load_nodes_wide_resstock_plus_ami_fallback_RES_<s>_ami-zero` (AMI gap tag `zero`, `MISSING_BLDG_POLICY = "baseline"`, no midnight fix).
+[../notebooks/5_postprocess_visualize.ipynb](../notebooks/5_postprocess_visualize.ipynb) compares the three rebuilt scenarios using `aggregated_load_nodes_wide_resstock_plus_ami_fallback_RES_<s>_ami-zero` in [../data/processed/node_loads/](../data/processed/node_loads/) (AMI gap tag `zero`, `MISSING_BLDG_POLICY = "baseline"`, no midnight fix).
 
 - **Load.** The tables hold kWh per 15 min; the notebook divides by 0.25 h to get average kW. The **system load** is the sum of the 146 residential node columns (`_RES`). It includes the static AMI-fallback meters and excludes non-residential load.
 - **Seasons.** Meteorological seasons are used (Winter = Dec–Feb, Spring = Mar–May, Summer = Jun–Aug, Fall = Sep–Nov). The exception is the demand-flex (DF) measure's own seasons, which are labelled as such (§12.4).
 - **Timestamps.** Interval-end, local standard time, 2024 labels (§11).
-- **Check.** Baseline annual energy (4,013,436 kWh) equals the total of `resstock_aggregation_report_baseline_rebuilt.csv`.
-- **Figures.** The figures below are copies of the notebook outputs, kept in `docs/figures/postprocess/` because `results/` is not tracked by git. Re-copy them after re-running notebook 5.
+- **Check.** Baseline annual energy (4,013,436 kWh) equals the total of [../reports/diagnostics/resstock_aggregation_report_baseline_rebuilt.csv](../reports/diagnostics/resstock_aggregation_report_baseline_rebuilt.csv).
+- **Figures.** The figures below are copies of the notebook outputs, kept in [figures/postprocess/](figures/postprocess/) because generated [../reports/postprocess/](../reports/postprocess/) outputs are not tracked by git. Re-copy them after deliberately re-running notebook 5 and reviewing the associated report results; relocation alone leaves these published copies unchanged.
 
 Scenario names: **Baseline** = `baseline_rebuilt`, **Up4** = `up04_rebuilt`, **Up4+DF** = `up04_df_2F`.
 
@@ -344,7 +346,7 @@ Scenario names: **Baseline** = `baseline_rebuilt`, **Up4** = `up04_rebuilt`, **U
 | Summer | 732.1 | 1,034.0 | 1,032.3 | +41.2 | +41.0 | −0.16 | Jul 15 17:15 (all) |
 | Fall | 934.2 | 1,430.9 | 1,430.1 | +53.2 | +53.1 | −0.05 | Nov 30 13:15 (all) |
 
-Monthly peaks over all hours change by +26 to +59 % for Up4 vs Baseline. Up4+DF vs Up4 changes them by between −2.9 % (Dec) and +1.0 % (Mar); every other month is within ±1 %. The full monthly table is in `monthly_peaks_kw.csv`.
+Monthly peaks over all hours change by +26 to +59 % for Up4 vs Baseline. Up4+DF vs Up4 changes them by between −2.9 % (Dec) and +1.0 % (Mar); every other month is within ±1 %. The full monthly table is in [../reports/postprocess/monthly_peaks_kw.csv](../reports/postprocess/monthly_peaks_kw.csv).
 
 - **Electrification moves the annual peak.** It goes from a winter evening (Dec 21 18:45) to the middle of the coldest day (Jan 14 12:30), and it rises by 56 %.
 - **DF barely changes the all-hours peaks.** DF only acts inside its window (§12.4), and most all-hours peaks fall outside it: Jan 14 12:30, Mar 10 22:15, Jul 15 17:15 and Nov 30 13:15.
@@ -362,7 +364,7 @@ Monthly peaks over all hours change by +26 to +59 % for Up4 vs Baseline. Up4+DF 
 
 ### 12.4 Demand-flexibility peak window
 
-**Definition.** The DF run uses `ResStockArgumentsPostHPXML` (ResStock `2025_Release_1`) with no pre-peak period. In this mode the measure (`resources/common/schedule_modifier.rb`, `_get_peak_hour`) reads its peak window from `seasonal_shedding_peak_hours.json`. That file holds the Cambium 2050 MidCase net-load peak hour per state and season (Gagnon et al., 2024), and the window is applied every day. The NY entry is:
+**Definition.** The DF run uses `ResStockArgumentsPostHPXML` (ResStock `2025_Release_1`) with no pre-peak period. In this mode the measure (`resources/common/schedule_modifier.rb`, `_get_peak_hour`, in the **external ResStock checkout** selected by `RESSTOCK_DIR`) reads its peak window from `seasonal_shedding_peak_hours.json` in that checkout. These are external measure resources, not paths under this repository's shared OpenStudio resources. That file holds the Cambium 2050 MidCase net-load peak hour per state and season (Gagnon et al., 2024), and the window is applied every day. The NY entry is:
 
 | Measure season | Months | Window (local standard time) |
 |---|---|---|
@@ -372,7 +374,7 @@ Monthly peaks over all hours change by +26 to +59 % for Up4 vs Baseline. Up4+DF 
 
 **Verification.**
 
-- **Schedule.** The `peak_period` column of the DF `in.schedules.csv` is identical across the buildings checked and matches these hours. During DST (Mar 11 – Nov 4) the file shifts them by +1 h, which EnergyPlus offsets. In the standard-time output the shed therefore stays at the same hours all year; no DST step is visible in the results.
+- **Schedule.** The `peak_period` column of the DF `in.schedules.csv` (per-building run schedules in [../models/resstock_models_up04_df/](../models/resstock_models_up04_df/)) is identical across the buildings checked and matches these hours. During DST (Mar 11 – Nov 4) the file shifts them by +1 h, which EnergyPlus offsets. In the standard-time output the shed therefore stays at the same hours all year; no DST step is visible in the results.
 - **Load response.** The system Up4+DF − Up4 difference is negative over exactly 16 intervals (4 h) per day and is followed by a rebound spike. On the 15-min interval-end labels the response appears one interval later than the nominal window:
   - labels 17:30–21:15 in winter and intermediate months;
   - labels 18:30–22:15 in summer.
@@ -518,20 +520,20 @@ Some nodes have no residential load (minimum 0).
 3. **Rebound partly offsets the shed.** About 22 % of the shed energy returns within the hour after the window. The peak in that hour rises by up to 24 % (summer), and in March the recovery sets a new seasonal peak (+1.0 %).
 4. **Report DF peak impacts for both periods.** All-hours peaks understate what DF does inside its window; window peaks overstate what it does for the system peak. With electrified heating, the winter system peak at this circuit falls outside the Cambium-based window.
 
-### 12.10 Output files (`results/figures_postprocess/`)
+### 12.10 Output files
 
-The PNG files are also copied to `docs/figures/postprocess/` for this document.
+Notebook 5 writes all files below to [../reports/postprocess/](../reports/postprocess/). The PNG files are also copied to [figures/postprocess/](figures/postprocess/) for this document; the existing published copies are unchanged.
 
 | File | Content |
 |---|---|
-| `system_summary.csv`, `system_pairwise_changes.csv` | §12.1 |
-| `monthly_energy_mwh.csv`, `energy_annual_monthly.png`, `energy_monthly_df_vs_up04.png` | §12.2 |
-| `seasonal_peaks_kw.csv`, `monthly_peaks_kw.csv`, `demand_peaks.png`, `monthly_peak_pairwise.png` | §12.3 |
-| `df_window_verification.png` | §12.4 |
-| `peaks_window_vs_all_kw.csv`, `peaks_window_vs_all_time.csv`, `peak_change_window_vs_all.png`, `monthly_peaks_window_vs_all.png` | §12.5 |
-| `df_window_shed_rebound.csv` | §12.6 |
-| `load_duration.png`, `peak_day_summary.csv`, `peak_day_profiles_winter_summer.png`, `seasonal_avg_profiles.png`, `delta_heatmaps.png` | §12.7 and load shape |
-| `node_summary.csv`, `node_pairwise_stats.csv`, `node_distributions.png`, `node_seasonal_peaks.png`, `node_peak_change_window_vs_all.png` | §12.8 |
+| [../reports/postprocess/system_summary.csv](../reports/postprocess/system_summary.csv), [../reports/postprocess/system_pairwise_changes.csv](../reports/postprocess/system_pairwise_changes.csv) | §12.1 |
+| [../reports/postprocess/monthly_energy_mwh.csv](../reports/postprocess/monthly_energy_mwh.csv), [../reports/postprocess/energy_annual_monthly.png](../reports/postprocess/energy_annual_monthly.png), [../reports/postprocess/energy_monthly_df_vs_up04.png](../reports/postprocess/energy_monthly_df_vs_up04.png) | §12.2 |
+| [../reports/postprocess/seasonal_peaks_kw.csv](../reports/postprocess/seasonal_peaks_kw.csv), [../reports/postprocess/monthly_peaks_kw.csv](../reports/postprocess/monthly_peaks_kw.csv), [../reports/postprocess/demand_peaks.png](../reports/postprocess/demand_peaks.png), [../reports/postprocess/monthly_peak_pairwise.png](../reports/postprocess/monthly_peak_pairwise.png) | §12.3 |
+| [../reports/postprocess/df_window_verification.png](../reports/postprocess/df_window_verification.png) | §12.4 |
+| [../reports/postprocess/peaks_window_vs_all_kw.csv](../reports/postprocess/peaks_window_vs_all_kw.csv), [../reports/postprocess/peaks_window_vs_all_time.csv](../reports/postprocess/peaks_window_vs_all_time.csv), [../reports/postprocess/peak_change_window_vs_all.png](../reports/postprocess/peak_change_window_vs_all.png), [../reports/postprocess/monthly_peaks_window_vs_all.png](../reports/postprocess/monthly_peaks_window_vs_all.png) | §12.5 |
+| [../reports/postprocess/df_window_shed_rebound.csv](../reports/postprocess/df_window_shed_rebound.csv) | §12.6 |
+| [../reports/postprocess/load_duration.png](../reports/postprocess/load_duration.png), [../reports/postprocess/peak_day_summary.csv](../reports/postprocess/peak_day_summary.csv), [../reports/postprocess/peak_day_profiles_winter_summer.png](../reports/postprocess/peak_day_profiles_winter_summer.png), [../reports/postprocess/seasonal_avg_profiles.png](../reports/postprocess/seasonal_avg_profiles.png), [../reports/postprocess/delta_heatmaps.png](../reports/postprocess/delta_heatmaps.png) | §12.7 and load shape |
+| [../reports/postprocess/node_summary.csv](../reports/postprocess/node_summary.csv), [../reports/postprocess/node_pairwise_stats.csv](../reports/postprocess/node_pairwise_stats.csv), [../reports/postprocess/node_distributions.png](../reports/postprocess/node_distributions.png), [../reports/postprocess/node_seasonal_peaks.png](../reports/postprocess/node_seasonal_peaks.png), [../reports/postprocess/node_peak_change_window_vs_all.png](../reports/postprocess/node_peak_change_window_vs_all.png) | §12.8 |
 
 ## 13. Assumptions and limitations
 
@@ -549,17 +551,19 @@ The PNG files are also copied to `docs/figures/postprocess/` for this document.
 
 ## 14. Reproducibility and configuration
 
-**Software.** Python environment from `requirements.txt` (pandas, numpy, pyarrow); OpenStudio 3.8.0 with EnergyPlus 24.1 on Windows; ResStock `2025_Release_1` export (notebook 2 only); the `buildstock-ami-mapping` repository for matching. Run notebooks from `grid_edge_fy25/notebooks/`.
+**Software.** Python environment from [../requirements.txt](../requirements.txt) (pandas, numpy, pyarrow); OpenStudio 3.8.0 with EnergyPlus 24.1 on Windows; ResStock `2025_Release_1` export (notebook 2 only); the `buildstock-ami-mapping` repository for matching. The eight current notebooks live in [../notebooks/](../notebooks/). Their bootstrap supports repository-root or notebook-directory working directories and imports `PATHS` from [../src/grid_edge/paths.py](../src/grid_edge/paths.py) without installation. An editable package install is optional, not a replacement for the requirements environment; see [../README.md](../README.md#environment-setup) for setup and the existing notebook 5 dependency caveat.
+
+**Local configuration.** Set `OPENSTUDIO_PATH` to override the default C:/openstudio-3.8.0/bin/openstudio.exe; set `RESSTOCK_DIR` to override the sibling resstock_2025R1 checkout/export. For launching outside the checkout, set `GRID_EDGE_ROOT` to its absolute root. Restart notebook kernels after moving files so old working directories, imports and globals do not persist. Saved outputs may display pre-migration paths and do not certify a fresh run.
 
 **Configuration knobs.**
 
 | Notebook | Parameter | Meaning | Default |
 |---|---|---|---|
-| 0 | `AMI_FILE` | Raw AMI file | `data/input_files/consumption/ch1_4301002_individual.csv` |
+| 0 | `AMI_FILE` | Raw AMI file | [../data/raw/ami/ch1_4301002_individual.csv](../data/raw/ami/ch1_4301002_individual.csv) |
 | 0 | `GAP_METHOD`, `INTERP_MAX_GAP` | AMI gap treatment (§5) | `"zero"`, 4 |
-| 1 | `UPGRADE` | 0 = baseline, otherwise upgrade id (`_upNN` outputs) | 0 |
+| 1 | `UPGRADE` | 0 = baseline, otherwise upgrade id (`_upNN` outputs) | **4 in the saved notebook**; run 0 and 4 separately when regenerating both original sets |
 | 1 | `MAX_WORKERS`, `MAX_PARALLEL`, `SKIP_FINISHED`, `SYNC_MEASURES` | Download/simulation parallelism and resume behaviour | see notebook |
-| 2 | `SCENARIO` / `SCENARIOS` | Build path and flex settings per scenario | `baseline`, `up04`, `up04_df_2F` |
+| 2 | `SCENARIO` / `SCENARIOS` | Build path and flex settings per scenario | **`baseline` selected**; repeat for `up04` and `up04_df_2F` |
 | 3 | `SCENARIOS_TO_BUILD`, `WRITE_CSV`, `N_WORKERS` | Which tables to build; CSV output; parallel reads | all, `True`, 8 |
 | 4 | `SCENARIOS`, `BASELINE_SCENARIO` | Scenarios to aggregate; substitute for missing buildings | the three rebuilt runs, `baseline_rebuilt` |
 | 4 | `MISSING_BLDG_POLICY` | `"baseline"` or `"ami"` (§10) | `"baseline"` |
@@ -569,9 +573,13 @@ The PNG files are also copied to `docs/figures/postprocess/` for this document.
 | 5 | `PEAK_DAY_SCEN` | Scenario whose winter/summer peak days are plotted | `Upgrade 04` |
 | 5 | `DF_SEASON`, `DF_WINDOW`, `WINDOW_LAG` | DF window definition (§12.4) and label lag | NY windows, 15 min |
 
-**Output naming.** `<s>` = scenario, `<g>` = AMI gap tag, `_upNN` = upgrade of an original run, `_midfix` = midnight fix applied. Each combination writes its own files, so variants can coexist and every result file states how it was made.
+**Output naming.** `<s>` = scenario, `<g>` = AMI gap tag, `_upNN` = upgrade of an original run, `_midfix` = midnight fix applied. Notebook 4 forms `<t>` from `<s>` plus optional `_midfix`; combined/fallback filenames then append `_ami-<g>`. Gap-tagged variants can coexist, but ResStock-only files and some diagnostics omit the gap tag; notebook 5 uses fixed summary/figure names, and `MISSING_BLDG_POLICY` is not encoded in filenames. Retain settings and provenance alongside each archived output set. See [data_flow.md](data_flow.md#units-gaps-and-filenames).
 
-**Idempotence.** Downloads, simulations and the building-ID lists are skipped when already present (delete them to regenerate); load tables and aggregation outputs of the same scenario are overwritten.
+**Idempotence and retention.** Downloads, simulations and the building-ID lists may be skipped when already present; load tables and aggregation outputs of the same scenario are overwritten. Preserve superseded models, selections, inputs and outputs in a provenance-labelled archive before deliberate regeneration, rather than deleting them to force a re-run. Do not relocate files needed by active simulations or saved workflow references. The notebooks remain authoritative; the optional CLI implementation in [../src/grid_edge/run_hvac_flex.py](../src/grid_edge/run_hvac_flex.py) is exposed without installation by [../scripts/run_hvac_flex.py](../scripts/run_hvac_flex.py).
+
+**Migration compatibility.** The original local virtual environments and editor settings stay in place. Old model/resource locations retain local Windows junctions for absolute paths embedded in saved OSW/OSM/XML artifacts; new code uses canonical paths only. Do not move/delete those compatibility directories until old simulations are regenerated. Referenced external ResStock checkouts must still exist for saved workflows. Original notebooks/output cells/docs/helper/README/ignore rules, including uncommitted changes, are retained in [../archive/reorganization_2026-10-29/before/](../archive/reorganization_2026-10-29/before/). The one-time migration journal and archive policies are described in [repository_structure.md](repository_structure.md#lossless-migration-and-evidence).
+
+**Validation limits.** After migration and file writers finish, [../scripts/validate_repository.py](../scripts/validate_repository.py) can check notebook syntax/selected path conventions without executing notebooks; `--data` reads selected current inputs and the three `ami-zero`, no-midnight-fix combined scenarios; `--inventory` checks local preservation sizes, recorded hashes and compatibility links. [../tests/test_paths.py](../tests/test_paths.py) checks path contracts with `unittest`. These are not simulation runs, full artifact/path audits, matching validation or a recalculation of §12. No notebook execution, simulation, output overwrite, test pass or completed migration is claimed by this documentation update. Commands and prerequisites are in [../README.md](../README.md#validation-without-rerunning-the-pipeline).
 
 ## 15. Glossary
 
@@ -587,7 +595,7 @@ The PNG files are also copied to `docs/figures/postprocess/` for this document.
 | Upgrade 24 | ResStock HVAC demand flexibility with on-peak load shedding |
 | Original run | Released `in.osm` simulated with 2024 weather (notebook 1) |
 | Rebuilt run | Model rebuilt from `home.xml` with `2025_Release_1` measures (notebook 2) |
-| Match | Assignment of ResStock buildings to an AMI meter (`match_report.csv`) |
+| Match | Assignment of ResStock buildings to an AMI meter ([../data/external/matching/match_report.csv](../data/external/matching/match_report.csv)) |
 | AMI fallback | Use of a meter's measured AMI load when it has no usable match |
 | Gap tag | `zero`, `nan` or `interp<N>`: the AMI gap treatment used |
 | Interval-end | A timestamp labels the 15 minutes ending at that time |
