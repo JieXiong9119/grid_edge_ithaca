@@ -332,8 +332,8 @@ How many baseline buildings have an upgrade 4 (`up04_rebuilt`) or upgrade 4 + DF
 - **Transformer nodes (146 RES columns).** Annual node energy splits into 59.2% upgraded ResStock, 30.0% baseline-filled ResStock and 10.8% AMI fallback (HP upgrade+DF: 58.9 / 30.2 / 10.9). 36 nodes are fully upgraded, 76 are mixed and 34 carry no upgraded load (only AMI fallback, baseline-filled buildings, or no data). By upgraded energy share: 33 nodes at 0%, 5 in (0, 25%], 11 in (25, 50%], 39 in (50, 75%], 21 in (75, 100%) and 36 at 100%; one node has no load.
 - **Implication.** Scenario differences at a node scale with its upgraded share; about 40% of residential node energy is unchanged between Baseline and HP upgrade by construction. Read node-level upgrade impacts together with `upgraded_share`.
 
-![Upgrade coverage of buildings and transformer nodes](figures/postprocess/upgrade_coverage.png)
-*Figure 10.1. Upgrade coverage. (a) Baseline buildings at each level split into finished HP upgrade runs, applicable but vacant without a run, and not applicable. (b) Annual residential node energy by origin for each scenario. (c) Transformer nodes by upgraded share of node energy.*
+![Upgrade coverage of buildings, meters and transformer nodes](figures/postprocess/upgrade_coverage.png)
+*Figure 10.1. HP upgrade coverage (HP upgrade + DF has identical coverage, so it is shown once). (a) Baseline buildings at each level split into finished HP upgrade runs, applicable but vacant without a run, and not applicable. (b) The 565 residential meters by load source: ResStock with the HP-upgraded building (221), ResStock with a baseline-filled building (201), AMI fallback (116 empty match + 22 not in the match report) and no data (5). (c) Annual residential energy of the 146 nodes by origin. The + DF energy shares differ by ~0.2 points only because DF lowers the upgraded buildings' annual kWh by ~1.5%; it is not a coverage difference.*
 
 ## 11. Time alignment and calendar conventions
 
